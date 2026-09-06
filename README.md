@@ -20,7 +20,7 @@ A simple pixel-style Flappy Bird game made with HTML, CSS, and JavaScript.
 
 ## 🚀 Running the Game
 
-Open `flappy_pixel.html` in your browser.
+Open `index.html` in your browser.
 
 ### VS Code
 
@@ -30,7 +30,7 @@ You can also use the included `.vscode/launch.json` configuration and press **F5
 
 ```text
 .
-├── flappy_pixel.html
+├── index.html
 ├── README.md
 └── .vscode/
     └── launch.json

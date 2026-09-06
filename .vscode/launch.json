@@ -5,7 +5,7 @@
       "type": "chrome",
       "request": "launch",
       "name": "Launch Flappy Bird",
-      "file": "${workspaceFolder}/flappy_pixel.html"
+      "file": "${workspaceFolder}/index.html"
     }
   ]
 }
