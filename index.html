@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Pixel Flappy Bird</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    background: #222;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+  canvas {
+    width: min(400px, 100vw);
+    height: min(600px, 100vh);
+    border: 4px solid #111;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+<canvas id="game" width="400" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+// Your uploaded pixel bird, embedded directly in this HTML.
+const birdImage = new Image();
+birdImage.src = "data:image/webp;base64,UklGRrgDAABXRUJQVlA4TKsDAAAvwoFoABXJsa3t2J4/tm3bto3Ktm3btm3btm23tq32Ws/zPu/3hvc8UqW12nR5qlR/H6fOAOykyhDs5JvAtzKJv4ozGzjWth1z7sGHsbupEDvpVXIvXke62URs27Zt24abbdux53rf/+U8v+1kAXWu0qnyAMkCVpUjdaawUdm22f8JGFntyf/kf/I/+Z/8T/4n/1PiS4/Z/NNa9PV7rRbk6kkagehjbSvyH/lPy4u5rYbXeOyIaq8BDK73XTstwwFehDPg3Cmg7IBdYDfchSw+paEVxkyfRq8BVBmykuHpsBs4Xw+onjAI2E0PEur4VTTttXsCzhjYrQzkP/Kfmh9V58fUO2j1EaP67H2IIrO6Qb+B9mtwusqoWp9qXVn9FtAIPz/L/+4ZXi3r1ugcux1Elw2AOoD+sBqwu4ChLXARuQK6/WPhF0s/QGsPGZ0l8ZYyAmhovrf/3TG8VlWt0UF2W8l2CbUIo8GgyFNBYmsOG/If+W/viZAnAXZDnQZcPAuMPf6j/X9h14tW7Bqd4c0yzIdVgH3EUA+IDtDk0B6g+cDnjbwJbdFrR9Z41SKV+QfvqEUA3gkMnZNQb2CAnpXYmiOG/Ef+2/erc4tLsaKwBUGZ85oHsfN1WQuq22cl1qDMEjtK1ZD/yH/7TgTkB9tc9PSVTdA5qhLTWzb7N65Bgxo2ugJ4I2wF6AVMGwgE0ISgXdzAevn/ldAyYgADXqDTEnzkFnQzYFgm/5H/9vqbAEOB87rTBjWmwUF/q4If2O3GDe5+YD0ZdnlbqcJdRAvYIp9S8InXlbYCt8Ib+Y/8t9fMgAbXcNBg/Ro3sGNF53rZwPtVbAvR0V82QOeqCoYWq8RVcLiSrfCVW4IPlHXl5VZCo+4r5dIbYyX2+w/eJfbhD84fSHDMqsV40TnBey8+kVATBQOT/8h/ml7qdYXN+jWbwzzKe+LQDHZIpGZGTJndXsHGl9Aseuo82Ev+mZf8U8FH9L6chRaY1aI5gfVyJyXv/fJqeS+a0i+hZtXvYfALKfgk6+oEdFSNEw3YREN5rlet5D9ankN95d29zTB3lTP7PkF9BLbDlO6AHSY82o99Eqc5668ukDQ0fUjwXbPrJfh/vOicOB3EPpH/yH/71GFP3JcMKxPcoulDivOdsV71k//If/t66Lu1u6YDlmG3jn2R1h/RH8U5oNHpdWsp0gH1Tq9VC6V/vSf/kf80x3RLWqRDar1mRf4n/5P/yf/kf/I/+Z/8T/6n/wIA";
+
+const W = canvas.width;
+const H = canvas.height;
+
+// EASY settings: lower gravity, gentle flap, slower pipes, bigger gaps.
+const GRAVITY = 0.22;
+const FLAP = -5.2;
+const PIPE_SPEED = 1.15;
+const PIPE_GAP = 230;
+const PIPE_WIDTH = 58;
+const PIPE_DISTANCE = 285;
+
+let bird, pipes, score, started, gameOver;
+
+function reset() {
+  bird = { x: 82, y: 280, w: 76, h: 65, vy: 0, angle: 0 };
+  pipes = [];
+  score = 0;
+  started = false;
+  gameOver = false;
+}
+
+function flap() {
+  if (gameOver) reset();
+  started = true;
+  bird.vy = FLAP;
+  bird.angle = -0.12;
+}
+
+function addPipe() {
+  const minTop = 65;
+  const maxTop = H - PIPE_GAP - 95;
+  const top = Math.floor(Math.random() * (maxTop - minTop + 1)) + minTop;
+  pipes.push({ x: W + 10, top, passed: false });
+}
+
+function update() {
+  // After dying, the bird keeps falling until it reaches the ground.
+  if (gameOver) {
+    // Falling animation: accelerate downward and rotate the bird.
+    bird.vy += GRAVITY * 1.15;
+    bird.y += bird.vy;
+    bird.angle = Math.min(bird.angle + 0.10, Math.PI / 2);
+
+    const ground = H - 35;
+    if (bird.y + bird.h >= ground) {
+      bird.y = ground - bird.h;
+      bird.vy = 0;
+    }
+    return;
+  }
+
+  if (!started) return;
+
+  bird.vy += GRAVITY;
+  bird.y += bird.vy;
+  bird.angle = Math.max(-0.45, Math.min(0.55, bird.vy * 0.07));
+
+  if (pipes.length === 0 || pipes[pipes.length - 1].x < W - PIPE_DISTANCE) {
+    addPipe();
+  }
+
+  for (const p of pipes) {
+    p.x -= PIPE_SPEED;
+
+    if (!p.passed && p.x + PIPE_WIDTH < bird.x) {
+      p.passed = true;
+      score++;
+    }
+  }
+
+  pipes = pipes.filter(p => p.x + PIPE_WIDTH > -10);
+
+  // Extra-forgiving collision box.
+  const bx = bird.x + 14;
+  const by = bird.y + 13;
+  const bw = bird.w - 28;
+  const bh = bird.h - 25;
+
+  if (by < 0 || by + bh > H - 35) {
+    gameOver = true;
+    return;
+  }
+
+  for (const p of pipes) {
+    const hitX = bx + bw > p.x && bx < p.x + PIPE_WIDTH;
+    const hitTop = by < p.top;
+    const hitBottom = by + bh > p.top + PIPE_GAP;
+
+    if (hitX && (hitTop || hitBottom)) {
+      gameOver = true;
+      // Give the bird a little downward momentum when it dies.
+      bird.vy = Math.max(bird.vy, 1.5);
+      return;
+    }
+  }
+}
+function drawBackground() {
+  ctx.fillStyle = "#70c5ce";
+  ctx.fillRect(0, 0, W, H);
+
+  // Simple pixel clouds.
+  ctx.fillStyle = "#dff7f8";
+  ctx.fillRect(35, 90, 70, 18);
+  ctx.fillRect(50, 78, 42, 30);
+  ctx.fillRect(265, 145, 80, 18);
+  ctx.fillRect(285, 132, 40, 30);
+
+  // Ground.
+  ctx.fillStyle = "#ded895";
+  ctx.fillRect(0, H - 35, W, 35);
+  ctx.fillStyle = "#c6b85e";
+  ctx.fillRect(0, H - 35, W, 7);
+}
+
+function drawPipe(x, top, bottom) {
+  ctx.fillStyle = "#3f9e3f";
+  ctx.fillRect(x, 0, PIPE_WIDTH, top);
+  ctx.fillRect(x, bottom, PIPE_WIDTH, H - bottom);
+
+  ctx.fillStyle = "#55bd55";
+  ctx.fillRect(x + 8, 0, 10, top);
+  ctx.fillRect(x + 8, bottom, 10, H - bottom);
+
+  ctx.fillStyle = "#287c2e";
+  ctx.fillRect(x - 4, top - 20, PIPE_WIDTH + 8, 20);
+  ctx.fillRect(x - 4, bottom, PIPE_WIDTH + 8, 20);
+}
+
+function drawBird() {
+  ctx.save();
+
+  // Rotate around the center so the bird naturally tips downward.
+  ctx.translate(bird.x + bird.w / 2, bird.y + bird.h / 2);
+  ctx.rotate(bird.angle);
+  ctx.translate(-bird.w / 2, -bird.h / 2);
+
+  if (birdImage.complete) {
+    ctx.drawImage(birdImage, 0, 0, bird.w, bird.h);
+  } else {
+    ctx.fillStyle = "#ffeb24";
+    ctx.fillRect(0, 0, bird.w, bird.h);
+  }
+
+  ctx.restore();
+}
+function text(text, x, y, size) {
+  ctx.font = `bold ${size}px Arial`;
+  ctx.textAlign = "center";
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "#111";
+  ctx.fillStyle = "#fff";
+  ctx.strokeText(text, x, y);
+  ctx.fillText(text, x, y);
+}
+
+function draw() {
+  drawBackground();
+
+  for (const p of pipes) {
+    drawPipe(p.x, p.top, p.top + PIPE_GAP);
+  }
+
+  drawBird();
+  text(score, W / 2, 65, 46);
+
+  if (!started) {
+    text("CLICK / SPACE", W / 2, 270, 30);
+    text("TO FLAP", W / 2, 310, 30);
+  }
+
+  if (gameOver) {
+    ctx.fillStyle = "rgba(0,0,0,.38)";
+    ctx.fillRect(0, 0, W, H);
+    text("GAME OVER", W / 2, 275, 42);
+    text("CLICK / SPACE", W / 2, 320, 23);
+    text("TO RESTART", W / 2, 350, 23);
+  }
+}
+
+function loop() {
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+document.addEventListener("keydown", e => {
+  if (e.code === "Space") {
+    e.preventDefault();
+    flap();
+  }
+});
+canvas.addEventListener("pointerdown", flap);
+
+reset();
+loop();
+</script>
+</body>
+</html>
